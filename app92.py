@@ -455,10 +455,18 @@ with tabs[4]:
                 save_to_excel(transactions)
                 st.success("Transactions enregistrées avec succès !")
 
+
 class PortfolioPerformanceFile:
     def __init__(self, filepath):
         self.filepath = filepath
-        self.root = et.parse(filepath)
+        try:
+            self.root = et.parse(filepath)
+        except OSError:
+            st.error(f"Le fichier '{filepath}' est introuvable ou ne peut pas être ouvert. Vérifiez le chemin et la présence du fichier.")
+        except et.XMLSyntaxError:
+            st.error(f"Le fichier '{filepath}' ne semble pas être un fichier XML valide. Vérifiez le format du fichier.")
+
+    
         
     def check_for_ref_lx(self, element):
         ref = element.attrib.get("reference")
