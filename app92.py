@@ -527,18 +527,33 @@ class PortfolioPerformanceFile:
 
     
     def get_df_portfolios(self):
+        # Vérifier si self.root est bien initialisé
+        if self.root is None:
+            st.warning("Impossible de récupérer les données de 'portfolios' car le fichier XML n'a pas été chargé correctement.")
+            return pd.DataFrame()
+    
         dfcols = ['idx', 'uuid', 'name', 'currencycode', 'isretiredxpath']
-        rows = []           
+        rows = []
+        
+        # Rechercher les portfolios dans le fichier XML
         for idx, portfolio in enumerate(self.root.findall(".//portfolios/portfolio")):
-            portfolio = self.check_for_ref_lx(portfolio)
+            portfolio = self.check_for_ref_lx(portfolio)  # Vérifier la référence
+    
+            # Si portfolio est None après vérification, passer à l'itération suivante
+            if portfolio is None:
+                continue
+    
             ptf_idx = idx + 1 
             ptf_uuid = portfolio.find('uuid').text if portfolio.find('uuid') is not None else ""
             ptf_name = portfolio.find('name').text if portfolio.find('name') is not None else ""
             ptf_currencycode = portfolio.find("currencyCode").text if portfolio.find('currencyCode') is not None else ""
             ptf_isretired = portfolio.find("isRetired").text if portfolio.find('isRetired') is not None else ""
+            
+            # Ajouter la ligne aux données
             rows.append([ptf_idx, ptf_uuid, ptf_name, ptf_currencycode, ptf_isretired])
         
         return pd.DataFrame(rows, columns=dfcols)
+    
 
     
     def get_df_accounts(self):
