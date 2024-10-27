@@ -8,6 +8,8 @@ import streamlit as st
 import plotly.express as px
 import matplotlib.pyplot as plt
 
+# Définir BASE_DIR pour le chemin relatif
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Configuration de la page Streamlit
 st.set_page_config(page_title="Cash App", layout="wide")
