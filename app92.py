@@ -610,10 +610,13 @@ with tabs[5]:
 
     # Configuration de l'application Streamlit
     st.title("Portfolio Performance Analysis")
-
-    # Spécifiez le chemin du fichier XML
-    file_path = "C:/Users/a-niv/Desktop/Streamlit-Bank/data/Portfolio Performance Alex.xml"  # Remplacez par le chemin correct
-
+    
+    # Définir BASE_DIR pour le chemin relatif
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    
+    # Spécifiez le chemin du fichier XML de manière relative
+    file_path = os.path.join(BASE_DIR, 'data', 'Portfolio Performance Alex.xml')
+    
     # Créer une instance de PortfolioPerformanceFile
     PP = PortfolioPerformanceFile(filepath=file_path)
 
