@@ -8,8 +8,6 @@ import streamlit as st
 import plotly.express as px
 import matplotlib.pyplot as plt
 
-# Définir BASE_DIR pour le chemin relatif
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Configuration de la page Streamlit
 st.set_page_config(page_title="Cash App", layout="wide")
@@ -18,7 +16,7 @@ st.set_page_config(page_title="Cash App", layout="wide")
 #@st.cache_data  # Mise en cache des données
 # Fonction pour charger les données de Data.xlsx
 def load_data():
-    file_path = os.path.join(BASE_DIR, 'data', 'Data.xlsx')
+    file_path = r'data/Data.xlsx'  # Spécifiez le chemin correct
     try:
         data = pd.read_excel(file_path)
         return data
@@ -34,13 +32,8 @@ def load_history():
 # Charger les données de Prêt.xlsx
 @st.cache_data  # Mise en cache des données
 def load_pret_data():
-    file_path = os.path.join(BASE_DIR, 'data', 'Prêt.xlsx')
-    try:
-        pret_data = pd.read_excel(file_path)
-        return pret_data
-    except FileNotFoundError:
-        st.warning("Le fichier Prêt.xlsx est introuvable. Veuillez vérifier le chemin.")
-        return pd.DataFrame()
+    pret_data = pd.read_excel('data/Prêt.xlsx')
+    return pret_data
 
 # Chargement des données
 data = load_data()
@@ -455,26 +448,12 @@ with tabs[4]:
                 save_to_excel(transactions)
                 st.success("Transactions enregistrées avec succès !")
 
-
-import lxml.etree as et
-import pandas as pd
-import streamlit as st
-
 class PortfolioPerformanceFile:
     def __init__(self, filepath):
         self.filepath = filepath
-        self.root = None  # Initialiser self.root à None par défaut
-
-        try:
-            self.root = et.parse(filepath)
-        except OSError:
-            st.error(f"Le fichier '{filepath}' est introuvable ou ne peut pas être ouvert. Vérifiez le chemin et la présence du fichier.")
-        except et.XMLSyntaxError:
-            st.error(f"Le fichier '{filepath}' ne semble pas être un fichier XML valide. Vérifiez le format du fichier.")
-
+        self.root = et.parse(filepath)
+        
     def check_for_ref_lx(self, element):
-        if self.root is None:
-            return None
         ref = element.attrib.get("reference")
         while ref is not None:
             element = self.root.find(self.root.getelementpath(element) + "/" + ref)
@@ -482,92 +461,108 @@ class PortfolioPerformanceFile:
         return element
         
     def get_df_securities(self):
-        if self.root is None:
-            st.warning("Impossible de récupérer les données de 'securities' car le fichier XML n'a pas été chargé correctement.")
-            return pd.DataFrame()
-
-        dfcols = ['idx', 'uuid', 'name', 'ticker', 'isin', 'wkn', 'cur']
+        dfcols = ['idx', 'uuid', 'name', 'ticker', 'isin', "wkn", "cur"]
         rows = []
         for idx, security in enumerate(self.root.findall(".//securities/security")):
-            sec_uuid = security.find('uuid').text if security.find('uuid') is not None else ""
-            sec_name = security.find('name').text if security.find('name') is not None else ""
-            sec_isin = security.find('isin').text if security.find('isin') is not None else ""
-            sec_wkn = security.find('wkn').text if security.find('wkn') is not None else ""
-            sec_curr = security.find('currencyCode').text if security.find('currencyCode') is not None else ""
-            sec_ticker = security.find('tickerSymbol').text if security.find('tickerSymbol') is not None else ""
-            rows.append([idx + 1, sec_uuid, sec_name, sec_ticker, sec_isin, sec_wkn, sec_curr])
+            if security is not None:
+                sec_idx = idx + 1
+                sec_uuid = security.find('uuid').text if security.find('uuid') is not None else ""
+                sec_name = security.find('name').text if security.find('name') is not None else ""
+                sec_isin = security.find('isin').text if security.find('isin') is not None else ""
 
+                # Imposer l'ISIN pour T212EUR
+                if sec_name == "T212EUR" and (sec_isin is None or sec_isin == ""):
+                    sec_isin = "T212EUR"
+
+                sec_wkn = security.find('wkn').text if security.find('wkn') is not None else ""
+                sec_curr = security.find('currencyCode').text if security.find('currencyCode') is not None else ""
+                sec_ticker = security.find('tickerSymbol').text if security.find('tickerSymbol') is not None else ""
+                rows.append([sec_idx, sec_uuid, sec_name, sec_ticker, sec_isin, sec_wkn, sec_curr])
         return pd.DataFrame(rows, columns=dfcols)
 
-    def get_df_all_prices(self):
-        if self.root is None:
-            st.warning("Impossible de récupérer les données de 'all prices' car le fichier XML n'a pas été chargé correctement.")
-            return pd.DataFrame()
 
+            
+    def get_df_all_prices(self):
         dfcols = ['date', 'price', 'isin']
-        rows = []
+        rows = []  # Utiliser une liste pour stocker les lignes
+
         for security in self.root.findall(".//securities/security"):
             sec_isin = security.find('isin').text if security.find('isin') is not None else None
             for price in security.findall(".//prices/price"):
                 date = price.attrib.get("t")
                 price_value = float(price.attrib.get("v")) / 100000000  # Diviser par 100 000 000
+                
+                # Si sec_isin est None, imposer l'ISIN "T212EUR"
                 if sec_isin is None:
                     sec_isin = "T212EUR"
+
+                # Ajouter les détails à la liste de lignes
                 rows.append([date, price_value, sec_isin])
 
+        # Créer un DataFrame à partir de la liste de lignes
         df = pd.DataFrame(rows, columns=dfcols)
+
+        # Convertir la colonne 'date' en datetime pour un meilleur tri
         df['date'] = pd.to_datetime(df['date'])
+
+        # Pivot du DataFrame pour avoir une structure avec ISIN comme colonnes
         df = df.pivot(index='date', columns='isin', values='price')
+
+        # Obtenir la date d'aujourd'hui
         today = pd.to_datetime('today').normalize()
+
+        # Tronquer le DataFrame pour ne garder que les dates jusqu'à aujourd'hui
         df = df[df.index <= today]
-        df.ffill(inplace=True)
+
+        # Propager le dernier cours connu pour les dates manquantes
+        df.ffill(inplace=True)  # Propager vers le bas
+
         return df
 
-    def get_df_portfolios(self):
-        if self.root is None:
-            st.warning("Impossible de récupérer les données de 'portfolios' car le fichier XML n'a pas été chargé correctement.")
-            return pd.DataFrame()
 
+    
+    def get_df_portfolios(self):
         dfcols = ['idx', 'uuid', 'name', 'currencycode', 'isretiredxpath']
-        rows = []
+        rows = []           
         for idx, portfolio in enumerate(self.root.findall(".//portfolios/portfolio")):
             portfolio = self.check_for_ref_lx(portfolio)
-            ptf_idx = idx + 1
+            ptf_idx = idx + 1 
             ptf_uuid = portfolio.find('uuid').text if portfolio.find('uuid') is not None else ""
             ptf_name = portfolio.find('name').text if portfolio.find('name') is not None else ""
             ptf_currencycode = portfolio.find("currencyCode").text if portfolio.find('currencyCode') is not None else ""
             ptf_isretired = portfolio.find("isRetired").text if portfolio.find('isRetired') is not None else ""
             rows.append([ptf_idx, ptf_uuid, ptf_name, ptf_currencycode, ptf_isretired])
-
+        
         return pd.DataFrame(rows, columns=dfcols)
 
+    
     def get_df_accounts(self):
-        if self.root is None:
-            st.warning("Impossible de récupérer les données de 'accounts' car le fichier XML n'a pas été chargé correctement.")
-            return pd.DataFrame()
-
-        dfcols = ['idx', 'uuid', 'name', 'currencycode', 'isretiredxpath', 'xpath']
-        rows = []
+        dfcols = ['idx', 'uuid', 'name', 'currencycode', 'isretiredxpath', "xpath"]
+        rows = []  # Utiliser une liste pour stocker les lignes
+        
         for idx, account in enumerate(self.root.findall('.//accounts/account')):
+            account = self.check_for_ref_lx(account)
+            acc_idx = idx + 1
             acc_uuid = account.find('uuid').text if account.find('uuid') is not None else ""
             acc_name = account.find('name').text if account.find('name') is not None else ""
             acc_currencycode = account.find('currencyCode').text if account.find('currencyCode') is not None else ""
             acc_isretired = account.find('isRetired').text if account.find('isRetired') is not None else ""
             acc_xpath = f".//accounts/account[{idx + 1}]"
-            rows.append([idx + 1, acc_uuid, acc_name, acc_currencycode, acc_isretired, acc_xpath])
-
+            
+            # Ajouter les détails à la liste de lignes
+            rows.append([acc_idx, acc_uuid, acc_name, acc_currencycode, acc_isretired, acc_xpath])
+        
+        # Créer un DataFrame à partir de la liste de lignes
         return pd.DataFrame(rows, columns=dfcols)
 
+        
     def get_transactions(self):
-        if self.root is None:
-            st.warning("Impossible de récupérer les données de 'transactions' car le fichier XML n'a pas été chargé correctement.")
-            return pd.DataFrame()
+        transactions = []  # List to store transaction details
 
-        transactions = []
         for account in self.root.findall("./accounts/account"): 
             account = self.check_for_ref_lx(account)
             account_uuid = account.find("uuid").text
-            account_name = account.find("name").text
+            account_name = account.find("name").text  # Extract account name
             account_currencyCode = account.find("currencyCode").text
 
             for account_transaction in account.findall("transactions/account-transaction"): 
@@ -579,29 +574,74 @@ class PortfolioPerformanceFile:
                 account_transaction_shares = float(account_transaction.find("shares").text)
                 account_transaction_type = account_transaction.find("type").text
                 
+                # Capture the fees if present
                 account_transaction_fee = float(account_transaction.find('units/unit[@type="FEE"]/amount').attrib["amount"]) / 100 if account_transaction.find('units/unit[@type="FEE"]/amount') is not None else 0
                 account_transaction_fee_iso = account_transaction.find('units/unit[@type="FEE"]/amount').attrib["currency"] if account_transaction.find('units/unit[@type="FEE"]/amount') is not None else ""
 
                 account_transaction_security = self.check_for_ref_lx(account_transaction.find("security")).find("uuid").text if account_transaction.find("security") is not None else ""
-                
+
+                # Append account name to the transaction data
                 transactions.append([
-                    account_transaction_date, account_transaction_type, account_transaction_currencyCode, 
-                    account_transaction_amount, account_transaction_fee, account_transaction_fee_iso, 
-                    account_transaction_amount, account_transaction_shares, account_transaction_security, 
-                    account_transaction_uuid, account_name
+                    account_transaction_date,
+                    account_transaction_type,
+                    account_transaction_currencyCode,
+                    account_transaction_amount,
+                    account_transaction_fee,
+                    account_transaction_fee_iso,
+                    account_transaction_amount,
+                    account_transaction_shares,
+                    account_transaction_security,
+                    account_transaction_uuid,
+                    account_name  # Include account name here
                 ])
 
+                # Handle transactions from portfolios under cross entries
+                for portfolio in account_transaction.findall("crossEntry/portfolio"):
+                    portfolio = self.check_for_ref_lx(portfolio)
+                    portfolio_uuid = portfolio.find("uuid").text
+
+                    for portfolio_transaction in portfolio.findall("transactions/portfolio-transaction"):
+                        portfolio_transaction = self.check_for_ref_lx(portfolio_transaction)
+                        portfolio_transaction_uuid = portfolio_transaction.find("uuid").text
+                        portfolio_transaction_date = portfolio_transaction.find("date").text
+                        portfolio_transaction_currencyCode = portfolio_transaction.find("currencyCode").text
+                        portfolio_transaction_amount = float(portfolio_transaction.find("amount").text) / 100
+                        portfolio_transaction_shares = float(portfolio_transaction.find("shares").text) / 100000000
+                        portfolio_transaction_type = portfolio_transaction.find("type").text
+
+                        portfolio_transaction_fee = float(portfolio_transaction.find('units/unit[@type="FEE"]/amount').attrib["amount"]) / 100 if portfolio_transaction.find('units/unit[@type="FEE"]/amount') is not None else 0
+                        portfolio_transaction_fee_iso = portfolio_transaction.find('units/unit[@type="FEE"]/amount').attrib["currency"] if portfolio_transaction.find('units/unit[@type="FEE"]/amount') is not None else ""
+
+                        portfolio_transaction_security = self.check_for_ref_lx(portfolio_transaction.find("security")).find("uuid").text if portfolio_transaction.find("security") is not None else ""
+
+                        # Append account name here as well
+                        transactions.append([
+                            portfolio_transaction_date,
+                            portfolio_transaction_type,
+                            portfolio_transaction_currencyCode,
+                            portfolio_transaction_amount,
+                            portfolio_transaction_fee,
+                            portfolio_transaction_fee_iso,
+                            portfolio_transaction_amount,
+                            portfolio_transaction_shares,
+                            portfolio_transaction_security,
+                            portfolio_transaction_uuid,
+                            account_name  # Include account name here too
+                        ])
+
+        # Create a DataFrame from the transaction list
         df_transactions = pd.DataFrame(transactions, columns=[
-            'date', 'type', 'currencyCode', 'net_price', 'fees', 'fee_currency', 'amount', 'shares', 
-            'security_uuid', 'transaction_uuid', 'account_name'
+            'date', 'type', 'currencyCode', 'net_price', 'fees', 'fee_currency', 'amount', 'shares', 'security_uuid', 'transaction_uuid', 'account_name'
         ])
 
         df_transactions.dropna(how='all', inplace=True)
         df_transactions['date'] = pd.to_datetime(df_transactions['date'])
+        # Filtrer les transactions où (type='BUY' OR type='SELL') AND shares=0
         df_transactions = df_transactions[~((df_transactions['type'].isin(['BUY', 'SELL'])) & (df_transactions['shares'] == 0))]
+        # Sort by date
         df_transactions = df_transactions.sort_values(by='date', ascending=False)
-        return df_transactions
 
+        return df_transactions
 
 
 # Onglet Bourse
@@ -610,13 +650,10 @@ with tabs[5]:
 
     # Configuration de l'application Streamlit
     st.title("Portfolio Performance Analysis")
-    
-    # Définir BASE_DIR pour le chemin relatif
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    
-    # Spécifiez le chemin du fichier XML de manière relative
-    file_path = os.path.join(BASE_DIR, 'data', 'Portfolio Performance Alex.xml')
-    
+
+    # Spécifiez le chemin du fichier XML
+    file_path = "C:/Users/a-niv/Desktop/Streamlit-Bank/data/Portfolio Performance Alex.xml"  # Remplacez par le chemin correct
+
     # Créer une instance de PortfolioPerformanceFile
     PP = PortfolioPerformanceFile(filepath=file_path)
 
