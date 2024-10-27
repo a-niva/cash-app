@@ -8,3 +8,4 @@ plotly
 os
 numpy
 openpyxl
+pip==24.3
