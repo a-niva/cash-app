@@ -9,6 +9,11 @@ import plotly.express as px
 import matplotlib.pyplot as plt
 
 
+# Définir BASE_DIR pour le chemin relatif
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+
 # Configuration de la page Streamlit
 st.set_page_config(page_title="Cash App", layout="wide")
 
@@ -41,7 +46,7 @@ pret_data = load_pret_data()
 
 # Fonction pour enregistrer les nouvelles transactions dans Data.xlsx
 def save_to_excel(transactions):
-    file_path = r'C:\Users\a-niv\Desktop\Streamlit-Bank\data\Data.xlsx'  # Spécifiez le chemin correct
+    file_path = os.path.join(BASE_DIR, 'data', 'Data.xlsx')  # Utiliser un chemin relatif
 
     # Charger les données existantes
     existing_data = load_data()
