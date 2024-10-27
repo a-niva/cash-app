@@ -456,102 +456,51 @@ with tabs[4]:
 class PortfolioPerformanceFile:
     def __init__(self, filepath):
         self.filepath = filepath
-        self.root = et.parse(filepath)
-        
+        self.root = None  # Initialiser self.root à None par défaut
+
+        # Tentative de chargement du fichier XML
+        try:
+            self.root = et.parse(filepath)
+            st.success(f"Fichier '{filepath}' chargé avec succès.")
+        except OSError:
+            st.error(f"Le fichier '{filepath}' est introuvable ou ne peut pas être ouvert. Vérifiez le chemin et la présence du fichier.")
+        except et.XMLSyntaxError as e:
+            st.error(f"Le fichier '{filepath}' ne semble pas être un fichier XML valide. Erreur : {str(e)}")
+
+        # Vérification si le chargement a échoué
+        if self.root is None:
+            st.warning("Le fichier XML n'a pas été chargé correctement. Les méthodes de cette classe ne seront pas disponibles.")
+
     def check_for_ref_lx(self, element):
+        if self.root is None or element is None:
+            return None
         ref = element.attrib.get("reference")
         while ref is not None:
             element = self.root.find(self.root.getelementpath(element) + "/" + ref)
             ref = element.attrib.get("reference")
         return element
         
-    def get_df_securities(self):
-        dfcols = ['idx', 'uuid', 'name', 'ticker', 'isin', "wkn", "cur"]
-        rows = []
-        for idx, security in enumerate(self.root.findall(".//securities/security")):
-            if security is not None:
-                sec_idx = idx + 1
-                sec_uuid = security.find('uuid').text if security.find('uuid') is not None else ""
-                sec_name = security.find('name').text if security.find('name') is not None else ""
-                sec_isin = security.find('isin').text if security.find('isin') is not None else ""
-
-                # Imposer l'ISIN pour T212EUR
-                if sec_name == "T212EUR" and (sec_isin is None or sec_isin == ""):
-                    sec_isin = "T212EUR"
-
-                sec_wkn = security.find('wkn').text if security.find('wkn') is not None else ""
-                sec_curr = security.find('currencyCode').text if security.find('currencyCode') is not None else ""
-                sec_ticker = security.find('tickerSymbol').text if security.find('tickerSymbol') is not None else ""
-                rows.append([sec_idx, sec_uuid, sec_name, sec_ticker, sec_isin, sec_wkn, sec_curr])
-        return pd.DataFrame(rows, columns=dfcols)
-
-
-            
-    def get_df_all_prices(self):
-        dfcols = ['date', 'price', 'isin']
-        rows = []  # Utiliser une liste pour stocker les lignes
-
-        for security in self.root.findall(".//securities/security"):
-            sec_isin = security.find('isin').text if security.find('isin') is not None else None
-            for price in security.findall(".//prices/price"):
-                date = price.attrib.get("t")
-                price_value = float(price.attrib.get("v")) / 100000000  # Diviser par 100 000 000
-                
-                # Si sec_isin est None, imposer l'ISIN "T212EUR"
-                if sec_isin is None:
-                    sec_isin = "T212EUR"
-
-                # Ajouter les détails à la liste de lignes
-                rows.append([date, price_value, sec_isin])
-
-        # Créer un DataFrame à partir de la liste de lignes
-        df = pd.DataFrame(rows, columns=dfcols)
-
-        # Convertir la colonne 'date' en datetime pour un meilleur tri
-        df['date'] = pd.to_datetime(df['date'])
-
-        # Pivot du DataFrame pour avoir une structure avec ISIN comme colonnes
-        df = df.pivot(index='date', columns='isin', values='price')
-
-        # Obtenir la date d'aujourd'hui
-        today = pd.to_datetime('today').normalize()
-
-        # Tronquer le DataFrame pour ne garder que les dates jusqu'à aujourd'hui
-        df = df[df.index <= today]
-
-        # Propager le dernier cours connu pour les dates manquantes
-        df.ffill(inplace=True)  # Propager vers le bas
-
-        return df
-
-
-    
     def get_df_portfolios(self):
-        # Vérifier si self.root est bien initialisé
         if self.root is None:
             st.warning("Impossible de récupérer les données de 'portfolios' car le fichier XML n'a pas été chargé correctement.")
             return pd.DataFrame()
-    
+
         dfcols = ['idx', 'uuid', 'name', 'currencycode', 'isretiredxpath']
         rows = []
         
         # Rechercher les portfolios dans le fichier XML
         for idx, portfolio in enumerate(self.root.findall(".//portfolios/portfolio")):
             portfolio = self.check_for_ref_lx(portfolio)  # Vérifier la référence
-    
-            # Si portfolio est None après vérification, passer à l'itération suivante
             if portfolio is None:
-                continue
-    
-            ptf_idx = idx + 1 
+                continue  # Passer à l'itération suivante si portfolio est None
+
+            ptf_idx = idx + 1
             ptf_uuid = portfolio.find('uuid').text if portfolio.find('uuid') is not None else ""
             ptf_name = portfolio.find('name').text if portfolio.find('name') is not None else ""
             ptf_currencycode = portfolio.find("currencyCode").text if portfolio.find('currencyCode') is not None else ""
             ptf_isretired = portfolio.find("isRetired").text if portfolio.find('isRetired') is not None else ""
-            
-            # Ajouter la ligne aux données
             rows.append([ptf_idx, ptf_uuid, ptf_name, ptf_currencycode, ptf_isretired])
-        
+
         return pd.DataFrame(rows, columns=dfcols)
     
 
