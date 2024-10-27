@@ -459,6 +459,7 @@ with tabs[4]:
 class PortfolioPerformanceFile:
     def __init__(self, filepath):
         self.filepath = filepath
+        self.root = None  # Initialiser self.root à None par défaut
         try:
             self.root = et.parse(filepath)
         except OSError:
@@ -476,23 +477,22 @@ class PortfolioPerformanceFile:
         return element
         
     def get_df_securities(self):
-        dfcols = ['idx', 'uuid', 'name', 'ticker', 'isin', "wkn", "cur"]
+        # Vérifier si self.root est bien initialisé
+        if self.root is None:
+            st.warning("Impossible de récupérer les données de 'securities' car le fichier XML n'a pas été chargé correctement.")
+            return pd.DataFrame()  # Retourne un DataFrame vide en cas d'erreur
+
+        dfcols = ['idx', 'uuid', 'name', 'ticker', 'isin', 'wkn', 'cur']
         rows = []
         for idx, security in enumerate(self.root.findall(".//securities/security")):
-            if security is not None:
-                sec_idx = idx + 1
-                sec_uuid = security.find('uuid').text if security.find('uuid') is not None else ""
-                sec_name = security.find('name').text if security.find('name') is not None else ""
-                sec_isin = security.find('isin').text if security.find('isin') is not None else ""
+            sec_uuid = security.find('uuid').text if security.find('uuid') is not None else ""
+            sec_name = security.find('name').text if security.find('name') is not None else ""
+            sec_isin = security.find('isin').text if security.find('isin') is not None else ""
+            sec_wkn = security.find('wkn').text if security.find('wkn') is not None else ""
+            sec_curr = security.find('currencyCode').text if security.find('currencyCode') is not None else ""
+            sec_ticker = security.find('tickerSymbol').text if security.find('tickerSymbol') is not None else ""
+            rows.append([idx + 1, sec_uuid, sec_name, sec_ticker, sec_isin, sec_wkn, sec_curr])
 
-                # Imposer l'ISIN pour T212EUR
-                if sec_name == "T212EUR" and (sec_isin is None or sec_isin == ""):
-                    sec_isin = "T212EUR"
-
-                sec_wkn = security.find('wkn').text if security.find('wkn') is not None else ""
-                sec_curr = security.find('currencyCode').text if security.find('currencyCode') is not None else ""
-                sec_ticker = security.find('tickerSymbol').text if security.find('tickerSymbol') is not None else ""
-                rows.append([sec_idx, sec_uuid, sec_name, sec_ticker, sec_isin, sec_wkn, sec_curr])
         return pd.DataFrame(rows, columns=dfcols)
 
 
