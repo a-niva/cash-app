@@ -480,7 +480,7 @@ class PortfolioPerformanceFile:
         # Vérifier si self.root est bien initialisé
         if self.root is None:
             st.warning("Impossible de récupérer les données de 'securities' car le fichier XML n'a pas été chargé correctement.")
-            return pd.DataFrame()  # Retourne un DataFrame vide en cas d'erreur
+            return pd.DataFrame()
 
         dfcols = ['idx', 'uuid', 'name', 'ticker', 'isin', 'wkn', 'cur']
         rows = []
@@ -552,22 +552,21 @@ class PortfolioPerformanceFile:
 
     
     def get_df_accounts(self):
-        dfcols = ['idx', 'uuid', 'name', 'currencycode', 'isretiredxpath', "xpath"]
-        rows = []  # Utiliser une liste pour stocker les lignes
-        
+        # Vérifier si self.root est bien initialisé
+        if self.root is None:
+            st.warning("Impossible de récupérer les données de 'accounts' car le fichier XML n'a pas été chargé correctement.")
+            return pd.DataFrame()
+
+        dfcols = ['idx', 'uuid', 'name', 'currencycode', 'isretiredxpath', 'xpath']
+        rows = []
         for idx, account in enumerate(self.root.findall('.//accounts/account')):
-            account = self.check_for_ref_lx(account)
-            acc_idx = idx + 1
             acc_uuid = account.find('uuid').text if account.find('uuid') is not None else ""
             acc_name = account.find('name').text if account.find('name') is not None else ""
             acc_currencycode = account.find('currencyCode').text if account.find('currencyCode') is not None else ""
             acc_isretired = account.find('isRetired').text if account.find('isRetired') is not None else ""
             acc_xpath = f".//accounts/account[{idx + 1}]"
-            
-            # Ajouter les détails à la liste de lignes
-            rows.append([acc_idx, acc_uuid, acc_name, acc_currencycode, acc_isretired, acc_xpath])
-        
-        # Créer un DataFrame à partir de la liste de lignes
+            rows.append([idx + 1, acc_uuid, acc_name, acc_currencycode, acc_isretired, acc_xpath])
+
         return pd.DataFrame(rows, columns=dfcols)
 
         
