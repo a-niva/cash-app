@@ -3,4 +3,8 @@ streamlit
 yfinance
 matplotlib
 sqlalchemy
+lxml.etree
+lxml
 plotly
+os
+numpy
