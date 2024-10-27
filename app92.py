@@ -16,7 +16,7 @@ st.set_page_config(page_title="Cash App", layout="wide")
 #@st.cache_data  # Mise en cache des données
 # Fonction pour charger les données de Data.xlsx
 def load_data():
-    file_path = r'data/Data.xlsx'  # Spécifiez le chemin correct
+    file_path = os.path.join(BASE_DIR, 'data', 'Data.xlsx')
     try:
         data = pd.read_excel(file_path)
         return data
@@ -32,8 +32,13 @@ def load_history():
 # Charger les données de Prêt.xlsx
 @st.cache_data  # Mise en cache des données
 def load_pret_data():
-    pret_data = pd.read_excel('data/Prêt.xlsx')
-    return pret_data
+    file_path = os.path.join(BASE_DIR, 'data', 'Prêt.xlsx')
+    try:
+        pret_data = pd.read_excel(file_path)
+        return pret_data
+    except FileNotFoundError:
+        st.warning("Le fichier Prêt.xlsx est introuvable. Veuillez vérifier le chemin.")
+        return pd.DataFrame()
 
 # Chargement des données
 data = load_data()
