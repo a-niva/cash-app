@@ -407,7 +407,7 @@ def recalculate_soldes(existing_data, transactions):
     return transactions
 
 # Onglet Import
-with tabs[2]:
+with tabs[3]:
     st.title("Importation des Transactions")
     
     # Charger les données existantes
@@ -664,7 +664,7 @@ class PortfolioPerformanceFile:
 
 
 # Onglet Bourse
-with tabs[3]:
+with tabs[4]:
     st.title("Bourse")
 
     # Configuration de l'application Streamlit
@@ -871,7 +871,7 @@ with tabs[3]:
 
 
 # Onglet Graphique
-with tabs[4]:
+with tabs[2]:
     st.title("Évolution des Soldes")
 
     soldes_truncated[soldes_truncated < 0] = 0
