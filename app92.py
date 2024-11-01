@@ -785,12 +785,13 @@ with tabs[4]:
         isin = transaction['isin']
         if pd.notna(isin):
             if transaction['type'] == 'BUY':
-                cumulative_cost.loc[transaction['date']:, isin] = cumulative_cost.loc[transaction['date']:, isin] + (transaction['net_price'] + transaction['fees'])
+                # Utilisation de += pour éviter le SettingWithCopyWarning
+                cumulative_cost.loc[transaction['date']:, isin] += (transaction['net_price'] + transaction['fees'])
                 total_shares.loc[transaction['date']:, isin] += transaction['shares']
             elif transaction['type'] == 'SELL':
-                cumulative_cost.loc[transaction['date']:, isin] = cumulative_cost.loc[transaction['date']:, isin] - (transaction['net_price'] + transaction['fees'])
+                cumulative_cost.loc[transaction['date']:, isin] -= (transaction['net_price'] + transaction['fees'])
                 total_shares.loc[transaction['date']:, isin] -= transaction['shares']
-
+    
     # Prix moyen = montant total investi / nombre de shares
     average_cost = cumulative_cost / total_shares.replace(0, np.nan)
 
@@ -851,7 +852,7 @@ with tabs[4]:
     cash_account = cash_account.astype(float)
 
     # Ajouter le cash au dataframe consolidé
-    consolidated_df['Cash'] = cash_account
+    consolidated_df['Cash'] = cash_account.astype(float)
 
     # Ajouter les coûts moyens, plus-values, performances et shares détenues pour chaque ISIN séparément
     for isin in average_cost.columns:
