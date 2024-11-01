@@ -14,37 +14,44 @@ import io
 
 
 
-# Configurer les informations d'authentification
+# ID de votre fichier Google Drive pour Data.xlsx
+file_id_data = st.secrets["FILE_ID_DATA"]  # Renseignez ou configurez dans Streamlit
+
+# Fonction d'authentification Google Drive
 def authenticate_gdrive():
     credentials = service_account.Credentials.from_service_account_file(
         'credentials.json', scopes=['https://www.googleapis.com/auth/drive']
     )
     return build('drive', 'v3', credentials=credentials)
 
-# Sauvegarder le fichier Data.xlsx sur Google Drive
-def save_to_gdrive(dataframe, filename='Data.xlsx', folder_id=None):
+# Enregistrer Data.xlsx sur Google Drive
+def save_to_gdrive(dataframe, file_id=None, filename='Data.xlsx', folder_id=None):
     drive_service = authenticate_gdrive()
     
     # Sauvegarder temporairement le fichier en local
-    dataframe.to_excel(filename, index=False)
+    local_path = f'/tmp/{filename}'
+    dataframe.to_excel(local_path, index=False)
     
     # Charger le fichier sur Google Drive
-    file_metadata = {'name': filename, 'parents': [folder_id]} if folder_id else {'name': filename}
-    media = MediaFileUpload(filename, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    uploaded_file = drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
-
-    st.success(f"Fichier {filename} sauvegardé sur Google Drive avec succès!")
+    media = MediaFileUpload(local_path, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    if file_id:
+        # Mettre à jour le fichier existant
+        drive_service.files().update(fileId=file_id, media_body=media).execute()
+        st.success(f"{filename} mis à jour sur Google Drive.")
+    else:
+        # Créer un nouveau fichier
+        file_metadata = {'name': filename, 'parents': [folder_id]} if folder_id else {'name': filename}
+        uploaded_file = drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+        file_id = uploaded_file.get('id')
+        st.success(f"{filename} sauvegardé sur Google Drive.")
     
     # Supprimer le fichier temporaire local
-    os.remove(filename)
-    
-    return uploaded_file['id']
+    os.remove(local_path)
+    return file_id
 
-# Charger le fichier Data.xlsx depuis Google Drive
+# Charger Data.xlsx depuis Google Drive
 def load_from_gdrive(file_id):
     drive_service = authenticate_gdrive()
-    
-    # Télécharger le fichier dans un flux mémoire
     request = drive_service.files().get_media(fileId=file_id)
     fh = io.BytesIO()
     downloader = MediaIoBaseDownload(fh, request)
@@ -52,9 +59,27 @@ def load_from_gdrive(file_id):
     done = False
     while not done:
         status, done = downloader.next_chunk()
-
+    
     fh.seek(0)
     return pd.read_excel(fh)
+
+# Charger les données
+def load_data():
+    try:
+        return load_from_gdrive(file_id_data)
+    except Exception:
+        st.error("Le fichier Data.xlsx est introuvable ou n'a pas pu être chargé.")
+        return pd.DataFrame()
+
+# Fonction pour enregistrer les transactions dans Google Drive
+def save_to_excel(transactions):
+    # Charger les données existantes
+    existing_data = load_data()
+    combined_data = pd.concat([existing_data, transactions], ignore_index=True)
+    combined_data = combined_data[['Date', 'Libellé', 'Catégorie', 'Prix', 'Solde', 'Compte']]
+    
+    global file_id_data
+    file_id_data = save_to_gdrive(combined_data, file_id=file_id_data)
 
 
 # Définir BASE_DIR pour le chemin relatif
@@ -461,13 +486,10 @@ def recalculate_soldes(existing_data, transactions):
 # Onglet Import
 with tabs[3]:
     st.title("Importation des Transactions")
-    
-    # Charger les données existantes
-    existing_data = load_existing_data()
 
-    # Uploader le fichier
+    existing_data = load_data()
+
     uploaded_file = st.file_uploader("Choisissez un fichier comptes.xlsx", type="xlsx")
-    
     if uploaded_file:
         transactions = import_transactions(uploaded_file, existing_data)
 
@@ -475,34 +497,26 @@ with tabs[3]:
             st.subheader("Transactions importées")
             st.dataframe(transactions, use_container_width=True)
 
-            # Liste des catégories pour le menu déroulant
-            categories = [
-                "Salaire+", "Immobilier", "Exceptionnel", "Frais bancaires", "Investissement", "Loyer", 
-                "Habitat", "Courses", "Loisirs", "Restaurant", "Impôts", 
-                "Retrait", "Voiture", "Énergie + Internet", "Transports", 
-                "Habits", "Santé", "Prep", "Bar", "RATP", "Braska", 
-                "Portable", "Livre", "Petit-Déjeuner", "Notes de Frais", "Aides", 
-                "Aides CAF"
-            ]
+            categories = ["Salaire+", "Immobilier", "Exceptionnel", "Frais bancaires", "Investissement", "Loyer", 
+                          "Habitat", "Courses", "Loisirs", "Restaurant", "Impôts", 
+                          "Retrait", "Voiture", "Énergie + Internet", "Transports", 
+                          "Habits", "Santé", "Prep", "Bar", "RATP", "Braska", 
+                          "Portable", "Livre", "Petit-Déjeuner", "Notes de Frais", "Aides", 
+                          "Aides CAF"]
 
-            # Créer un dictionnaire pour stocker les catégories choisies
             category_choices = {}
-
             for index, row in transactions.iterrows():
                 transaction_label = f"Opération: {row['Libellé']} - Montant: {row['Prix']}"
                 category = st.selectbox(transaction_label, categories, key=index)
                 category_choices[index] = category
-            
+
             if st.button("Enregistrer les transactions"):
-                # Enregistrer les transactions avec les catégories choisies
                 for idx, category in category_choices.items():
                     transactions.at[idx, 'Catégorie'] = category
-                # Recalculer les soldes
+
                 transactions = recalculate_soldes(existing_data, transactions)
-                # Enregistrer les transactions dans Data.xlsx
                 save_to_excel(transactions)
-                data = load_data()  
-                st.success("Transactions enregistrées avec succès !")
+                st.success("Transactions enregistrées avec succès dans Google Drive !")
 
 class PortfolioPerformanceFile:
     def __init__(self, filepath):
