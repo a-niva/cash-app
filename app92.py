@@ -727,7 +727,7 @@ with tabs[4]:
     st.dataframe(df_portfolios)
 
     st.subheader("All Prices DataFrame")
-    df_all_prices = PP.get_df_all_prices()
+    df_all_prices = PP.get_df_all_prices().sort_index(ascending=False)
     st.dataframe(df_all_prices)
 
     st.subheader("Transactions DataFrame")
