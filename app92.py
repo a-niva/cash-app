@@ -323,8 +323,8 @@ def import_transactions(file, existing_data):
                         df = df.loc[:last_valid_index]  # Garder seulement jusqu'à la dernière date valide
 
                     # Convertir les colonnes Débit et Crédit en float avec gestion des erreurs
-                    df['Débit'] = pd.to_numeric(df['Débit'].astype(str).str.replace(',', '.'), errors='coerce').fillna(0)
-                    df['Crédit'] = pd.to_numeric(df['Crédit'].astype(str).str.replace(',', '.'), errors='coerce').fillna(0)
+                    df['Débit'] = pd.to_numeric(df['Débit'].astype(str).str.replace(',', '.'), errors='coerce').fillna(0).infer_objects()
+                    df['Crédit'] = pd.to_numeric(df['Crédit'].astype(str).str.replace(',', '.'), errors='coerce').fillna(0).infer_objects()
 
                     # Renommer les colonnes pour correspondre au format de Data
                     df.rename(columns={
@@ -896,7 +896,7 @@ with tabs[4]:
         df_aggregate[account_name] = df_summary_isin[valorisation_cols_for_account].sum(axis=1)
     # Step 3: S'assurer que toutes les dates du `date_range` sont incluses
     # Étendre l'index de `df_aggregate` pour inclure toutes les dates du calendrier
-    df_aggregate = df_aggregate.reindex(date_range).fillna(0)
+    df_aggregate = df_aggregate.reindex(date_range).fillna(0).infer_objects()
     df_aggregate = df_aggregate.sort_index(ascending=False)
     st.subheader("Valorisation Totale par Account Name et par Date")
     st.dataframe(df_aggregate, use_container_width=True)
@@ -911,7 +911,7 @@ with tabs[2]:
 
     soldes_truncated[soldes_truncated < 0] = 0
     # Combiner les soldes des comptes bancaires avec les valorisations par account_name
-    consolidated_data = pd.concat([soldes_truncated, df_aggregate], axis=1).fillna(0)
+    consolidated_data = pd.concat([soldes_truncated, df_aggregate], axis=1).fillna(0).infer_objects()
 
 
     # Graphique en aires empilées pour l'évolution des soldes et valorisations
