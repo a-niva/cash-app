@@ -62,7 +62,7 @@ def save_to_excel(transactions):
 
 
 # Onglets en haut
-tabs = st.tabs(["Data", "Soldes", "Prêt", "Graphique", "Import", "Bourse","Trading"])
+tabs = st.tabs(["Data", "Soldes", "Graphique", "Import", "Bourse","Trading"])
 
 
 
