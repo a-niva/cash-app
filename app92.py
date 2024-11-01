@@ -666,38 +666,42 @@ class PortfolioPerformanceFile:
 # Onglet Bourse
 with tabs[4]:
     st.title("Bourse")
-
-    # Configuration de l'application Streamlit
-    st.title("Portfolio Performance Analysis")
     
-    # Définir BASE_DIR pour le chemin relatif
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    
-    # Spécifiez le chemin relatif vers le fichier XML
-    file_path = os.path.join(BASE_DIR, 'data', 'Portfolio Performance Alex.xml')
-    
-    # Créer une instance de PortfolioPerformanceFile
-    PP = PortfolioPerformanceFile(filepath=file_path)
+    # Ajout d'un champ de téléchargement de fichier
+    uploaded_xml = st.file_uploader("Importer un fichier Portfolio Performance Alex.xml", type="xml")
 
-    # Extraire les données
-    st.subheader("Securities DataFrame")
-    df_securities = PP.get_df_securities()
-    st.dataframe(df_securities)
+    # Si un fichier est importé
+    if uploaded_xml:
+        # Chemin pour enregistrer le fichier
+        file_path = os.path.join(BASE_DIR, 'data', 'Portfolio Performance Alex.xml')
+        
+        # Enregistrer le fichier téléchargé dans le dossier data
+        with open(file_path, "wb") as f:
+            f.write(uploaded_xml.getbuffer())
+        st.success("Le fichier XML a été mis à jour avec succès.")
+        
+        # Actualiser l'instance PortfolioPerformanceFile avec le nouveau fichier
+        PP = PortfolioPerformanceFile(filepath=file_path)
+        
+        # Actualiser les données affichées dans les onglets
+        # Extraction des données mises à jour
+        df_securities = PP.get_df_securities()
+        df_accounts = PP.get_df_accounts()
+        df_portfolios = PP.get_df_portfolios()
+        df_transactions = PP.get_transactions()
+        
+        # Afficher les données mises à jour
+        st.subheader("Securities DataFrame")
+        st.dataframe(df_securities)
 
-    st.subheader("Accounts DataFrame")
-    df_accounts = PP.get_df_accounts()
-    st.dataframe(df_accounts)
+        st.subheader("Accounts DataFrame")
+        st.dataframe(df_accounts)
 
-    st.subheader("Portfolios DataFrame")
-    df_portfolios = PP.get_df_portfolios()
-    st.dataframe(df_portfolios)
+        st.subheader("Portfolios DataFrame")
+        st.dataframe(df_portfolios)
 
-    st.subheader("All Prices DataFrame")
-    df_all_prices = PP.get_df_all_prices()
-    st.dataframe(df_all_prices)
-
-    st.subheader("Transactions DataFrame")
-    df_transactions = PP.get_transactions()
+        st.subheader("Transactions DataFrame")
+        st.dataframe(df_transactions)
 
     # Create a mapping DataFrame from the Securities DataFrame
     securities_mapping = df_securities[['uuid', 'isin', 'name']].copy()
