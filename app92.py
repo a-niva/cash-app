@@ -46,7 +46,9 @@ pret_data = load_pret_data()
 
 # Fonction pour enregistrer les nouvelles transactions dans Data.xlsx
 def save_to_excel(transactions):
-    file_path = os.path.join(BASE_DIR, 'data', 'Data.xlsx')  # Utiliser un chemin relatif
+    # Utiliser un chemin de test pour confirmer les permissions d'écriture
+    file_path = os.path.join(BASE_DIR, 'data', 'Data_test.xlsx')
+
     # Charger les données existantes
     existing_data = load_data()
 
@@ -56,8 +58,10 @@ def save_to_excel(transactions):
     # Réorganiser les colonnes selon le format requis
     combined_data = combined_data[['Date', 'Libellé', 'Catégorie', 'Prix', 'Solde', 'Compte']]
 
-    # Enregistrer dans le fichier Excel
+    # Enregistrer dans le fichier de test
     combined_data.to_excel(file_path, index=False)
+    
+    st.success("Les transactions ont été enregistrées dans Data_test.xlsx pour test.")
     
     
 
