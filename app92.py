@@ -762,7 +762,7 @@ with tabs[4]:
         isin = transaction['isin']
         if pd.notna(isin) and transaction['type'] in ['BUY', 'SELL']:
             change = float(transaction['shares']) if transaction['type'] == 'BUY' else -float(transaction['shares'])
-            shares_held.loc[transaction['date']:, isin] += change
+            shares_held.loc[transaction['date']:, isin] += change.astype(float)
 
     # Ajouter les shares détenues à chaque ISIN dans le dataframe consolidé
     for isin in shares_held.columns:
@@ -785,17 +785,20 @@ with tabs[4]:
         isin = transaction['isin']
         if pd.notna(isin):
             if transaction['type'] == 'BUY':
-                cumulative_cost.loc[transaction['date']:, isin] += (transaction['net_price'] + transaction['fees'])
+                cumulative_cost.loc[transaction['date']:, isin] = cumulative_cost.loc[transaction['date']:, isin] + (transaction['net_price'] + transaction['fees'])
                 total_shares.loc[transaction['date']:, isin] += transaction['shares']
             elif transaction['type'] == 'SELL':
-                cumulative_cost.loc[transaction['date']:, isin] -= (transaction['net_price'] - transaction['fees'])
+                cumulative_cost.loc[transaction['date']:, isin] = cumulative_cost.loc[transaction['date']:, isin] - (transaction['net_price'] + transaction['fees'])
                 total_shares.loc[transaction['date']:, isin] -= transaction['shares']
 
     # Prix moyen = montant total investi / nombre de shares
     average_cost = cumulative_cost / total_shares.replace(0, np.nan)
 
     # S'assurer que average_cost est de type float
-    average_cost = average_cost.astype(float)
+    average_cost = average_cost.astype(float).fillna(0).infer_objects()  # Remplir les NaN et inférer les objets
+    
+    # Calcul de la plus-value
+    plus_value = valorisation - cumulative_cost
 
     # Calcul de la plus-value
     plus_value = valorisation - cumulative_cost
