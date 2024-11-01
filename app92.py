@@ -499,6 +499,45 @@ class PortfolioPerformanceFile:
                 sec_ticker = security.find('tickerSymbol').text if security.find('tickerSymbol') is not None else ""
                 rows.append([sec_idx, sec_uuid, sec_name, sec_ticker, sec_isin, sec_wkn, sec_curr])
         return pd.DataFrame(rows, columns=dfcols)
+
+
+            
+    def get_df_all_prices(self):
+        dfcols = ['date', 'price', 'isin']
+        rows = []  # Utiliser une liste pour stocker les lignes
+
+        for security in self.root.findall(".//securities/security"):
+            sec_isin = security.find('isin').text if security.find('isin') is not None else None
+            for price in security.findall(".//prices/price"):
+                date = price.attrib.get("t")
+                price_value = float(price.attrib.get("v")) / 100000000  # Diviser par 100 000 000
+                
+                # Si sec_isin est None, imposer l'ISIN "T212EUR"
+                if sec_isin is None:
+                    sec_isin = "T212EUR"
+
+                # Ajouter les détails à la liste de lignes
+                rows.append([date, price_value, sec_isin])
+
+        # Créer un DataFrame à partir de la liste de lignes
+        df = pd.DataFrame(rows, columns=dfcols)
+
+        # Convertir la colonne 'date' en datetime pour un meilleur tri
+        df['date'] = pd.to_datetime(df['date'])
+
+        # Pivot du DataFrame pour avoir une structure avec ISIN comme colonnes
+        df = df.pivot(index='date', columns='isin', values='price')
+
+        # Obtenir la date d'aujourd'hui
+        today = pd.to_datetime('today').normalize()
+
+        # Tronquer le DataFrame pour ne garder que les dates jusqu'à aujourd'hui
+        df = df[df.index <= today]
+
+        # Propager le dernier cours connu pour les dates manquantes
+        df.ffill(inplace=True)  # Propager vers le bas
+
+        return df
         
     def get_df_portfolios(self):
         dfcols = ['idx', 'uuid', 'name', 'currencycode', 'isretiredxpath']
