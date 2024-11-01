@@ -779,7 +779,9 @@ with tabs[4]:
 
     # Calcul du prix de revient moyen
     cumulative_cost = pd.DataFrame(0.0, index=date_range, columns=df_all_prices.columns)
-    total_shares = pd.DataFrame(0, index=date_range, columns=df_all_prices.columns)
+    # Initialiser total_shares avec des floats
+    total_shares = pd.DataFrame(0.0, index=date_range, columns=df_all_prices.columns)
+    
 
     for idx, transaction in df_transactions.iterrows():
         isin = transaction['isin']
