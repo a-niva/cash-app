@@ -785,13 +785,13 @@ with tabs[4]:
         isin = transaction['isin']
         if pd.notna(isin):
             if transaction['type'] == 'BUY':
-                # Utilisation de += pour éviter le SettingWithCopyWarning
                 cumulative_cost.loc[transaction['date']:, isin] += (transaction['net_price'] + transaction['fees'])
-                total_shares.loc[transaction['date']:, isin] += transaction['shares']
+                # Convertir en float avant l'addition
+                total_shares.loc[transaction['date']:, isin] += float(transaction['shares'])
             elif transaction['type'] == 'SELL':
                 cumulative_cost.loc[transaction['date']:, isin] -= (transaction['net_price'] + transaction['fees'])
-                total_shares.loc[transaction['date']:, isin] -= transaction['shares']
-    
+                total_shares.loc[transaction['date']:, isin] -= float(transaction['shares'])
+        
     # Prix moyen = montant total investi / nombre de shares
     average_cost = cumulative_cost / total_shares.replace(0, np.nan)
 
