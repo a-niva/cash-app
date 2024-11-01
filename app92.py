@@ -35,7 +35,7 @@ def load_history():
     return data
 
 # Charger les données de Prêt.xlsx
-@st.cache_data  # Mise en cache des données
+#@st.cache_data  # Mise en cache des données
 def load_pret_data():
     pret_data = pd.read_excel('data/Prêt.xlsx')
     return pret_data
@@ -58,8 +58,20 @@ def save_to_excel(transactions):
     combined_data = combined_data[['Date', 'Libellé', 'Catégorie', 'Prix', 'Solde', 'Compte']]
 
     # Enregistrer dans le fichier Excel
-    combined_data.to_excel(file_path, index=False)
-
+    # Vérification de l'accès en écriture
+    try:
+        # Tentative d'écriture d'un petit test
+        with open(file_path, 'a') as f:
+            pass  # Essai d'accès en mode append sans rien écrire
+        # Si le test passe, sauvegarde réelle des données
+        combined_data.to_excel(file_path, index=False)
+        st.success("Les transactions ont été enregistrées avec succès dans Data.xlsx.")
+    except PermissionError:
+        st.error("Impossible d'écrire dans Data.xlsx. Veuillez vérifier les permissions.")
+    except Exception as e:
+        st.error(f"Erreur inattendue : {e}")
+    
+    
 
 # Onglets en haut
 tabs = st.tabs(["Data", "Soldes", "Graphique", "Import", "Bourse","Trading"])
@@ -445,12 +457,11 @@ with tabs[3]:
                 # Enregistrer les transactions avec les catégories choisies
                 for idx, category in category_choices.items():
                     transactions.at[idx, 'Catégorie'] = category
-                
                 # Recalculer les soldes
                 transactions = recalculate_soldes(existing_data, transactions)
-                
                 # Enregistrer les transactions dans Data.xlsx
                 save_to_excel(transactions)
+                data = load_data()  
                 st.success("Transactions enregistrées avec succès !")
 
 class PortfolioPerformanceFile:
