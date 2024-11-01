@@ -761,7 +761,7 @@ with tabs[4]:
     for idx, transaction in df_transactions.iterrows():
         isin = transaction['isin']
         if pd.notna(isin) and transaction['type'] in ['BUY', 'SELL']:
-            change = transaction['shares'] if transaction['type'] == 'BUY' else -transaction['shares']
+            change = float(transaction['shares']) if transaction['type'] == 'BUY' else -float(transaction['shares'])
             shares_held.loc[transaction['date']:, isin] += change
 
     # Ajouter les shares détenues à chaque ISIN dans le dataframe consolidé
