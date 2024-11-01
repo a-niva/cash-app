@@ -7,6 +7,54 @@ import plotly.graph_objects as go
 import streamlit as st
 import plotly.express as px
 import matplotlib.pyplot as plt
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
+import io
+
+
+
+# Configurer les informations d'authentification
+def authenticate_gdrive():
+    credentials = service_account.Credentials.from_service_account_file(
+        'credentials.json', scopes=['https://www.googleapis.com/auth/drive']
+    )
+    return build('drive', 'v3', credentials=credentials)
+
+# Sauvegarder le fichier Data.xlsx sur Google Drive
+def save_to_gdrive(dataframe, filename='Data.xlsx', folder_id=None):
+    drive_service = authenticate_gdrive()
+    
+    # Sauvegarder temporairement le fichier en local
+    dataframe.to_excel(filename, index=False)
+    
+    # Charger le fichier sur Google Drive
+    file_metadata = {'name': filename, 'parents': [folder_id]} if folder_id else {'name': filename}
+    media = MediaFileUpload(filename, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    uploaded_file = drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+
+    st.success(f"Fichier {filename} sauvegardé sur Google Drive avec succès!")
+    
+    # Supprimer le fichier temporaire local
+    os.remove(filename)
+    
+    return uploaded_file['id']
+
+# Charger le fichier Data.xlsx depuis Google Drive
+def load_from_gdrive(file_id):
+    drive_service = authenticate_gdrive()
+    
+    # Télécharger le fichier dans un flux mémoire
+    request = drive_service.files().get_media(fileId=file_id)
+    fh = io.BytesIO()
+    downloader = MediaIoBaseDownload(fh, request)
+    
+    done = False
+    while not done:
+        status, done = downloader.next_chunk()
+
+    fh.seek(0)
+    return pd.read_excel(fh)
 
 
 # Définir BASE_DIR pour le chemin relatif
