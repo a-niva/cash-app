@@ -667,6 +667,9 @@ class PortfolioPerformanceFile:
 with tabs[4]:
     st.title("Bourse")
 
+    # Ajout d'un champ de téléchargement de fichier
+    uploaded_xml = st.file_uploader("Importer un fichier Portfolio Performance Alex.xml", type="xml")
+
     # Configuration de l'application Streamlit
     st.title("Portfolio Performance Analysis")
 
