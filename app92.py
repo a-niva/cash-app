@@ -671,7 +671,7 @@ with tabs[4]:
     st.title("Portfolio Performance Analysis")
 
     # Spécifiez le chemin du fichier XML
-    file_path = "C:/Users/a-niv/Desktop/Streamlit-Bank/data/Portfolio Performance Alex.xml"  # Remplacez par le chemin correct
+    file_path = r'data/Portfolio Performance Alex.xml'  # Remplacez par le chemin correct
 
     # Créer une instance de PortfolioPerformanceFile
     PP = PortfolioPerformanceFile(filepath=file_path)
