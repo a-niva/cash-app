@@ -897,10 +897,10 @@ with tabs[4]:
     # Step 3: S'assurer que toutes les dates du `date_range` sont incluses
     # Étendre l'index de `df_aggregate` pour inclure toutes les dates du calendrier
     df_aggregate = df_aggregate.reindex(date_range).fillna(0)
-    # Step 4: Afficher le dataframe agrégé avec les valorisations par `account_name` et par date
+    df_aggregate = df_aggregate.sort_index(ascending=False)
     st.subheader("Valorisation Totale par Account Name et par Date")
-    st.dataframe(df_aggregate)
-
+    st.dataframe(df_aggregate, use_container_width=True)
+    
 
 
 
