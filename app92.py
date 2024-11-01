@@ -685,10 +685,10 @@ with tabs[4]:
         
         # Actualiser les données affichées dans les onglets
         # Extraction des données mises à jour
-        df_securities = PP.get_df_securities()
-        df_accounts = PP.get_df_accounts()
-        df_portfolios = PP.get_df_portfolios()
-        df_transactions = PP.get_transactions()
+        #df_securities = PP.get_df_securities()
+        #df_accounts = PP.get_df_accounts()
+        #df_portfolios = PP.get_df_portfolios()
+        #df_transactions = PP.get_transactions()
         
         # Afficher les données mises à jour
         st.subheader("Securities DataFrame")
