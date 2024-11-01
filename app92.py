@@ -47,7 +47,6 @@ pret_data = load_pret_data()
 # Fonction pour enregistrer les nouvelles transactions dans Data.xlsx
 def save_to_excel(transactions):
     file_path = os.path.join(BASE_DIR, 'data', 'Data.xlsx')  # Utiliser un chemin relatif
-
     # Charger les données existantes
     existing_data = load_data()
 
@@ -58,18 +57,7 @@ def save_to_excel(transactions):
     combined_data = combined_data[['Date', 'Libellé', 'Catégorie', 'Prix', 'Solde', 'Compte']]
 
     # Enregistrer dans le fichier Excel
-    # Vérification de l'accès en écriture
-    try:
-        # Tentative d'écriture d'un petit test
-        with open(file_path, 'a') as f:
-            pass  # Essai d'accès en mode append sans rien écrire
-        # Si le test passe, sauvegarde réelle des données
-        combined_data.to_excel(file_path, index=False)
-        st.success("Les transactions ont été enregistrées avec succès dans Data.xlsx.")
-    except PermissionError:
-        st.error("Impossible d'écrire dans Data.xlsx. Veuillez vérifier les permissions.")
-    except Exception as e:
-        st.error(f"Erreur inattendue : {e}")
+    combined_data.to_excel(file_path, index=False)
     
     
 
