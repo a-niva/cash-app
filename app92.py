@@ -1118,3 +1118,4 @@ with tabs[2]:
 
         # Afficher le graphique
         st.plotly_chart(fig)
+
