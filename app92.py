@@ -669,7 +669,41 @@ with tabs[4]:
 
     # Ajout d'un champ de téléchargement de fichier
     uploaded_xml = st.file_uploader("Importer un fichier Portfolio Performance Alex.xml", type="xml")
+    #############################################################
+    # Si un fichier est importé
+    if uploaded_xml:
+        # Chemin pour enregistrer le fichier
+        file_path = os.path.join(BASE_DIR, 'data', 'Portfolio Performance Alex.xml')
+        
+        # Enregistrer le fichier téléchargé dans le dossier data
+        with open(file_path, "wb") as f:
+            f.write(uploaded_xml.getbuffer())
+        st.success("Le fichier XML a été mis à jour avec succès.")
+        
+        # Actualiser l'instance PortfolioPerformanceFile avec le nouveau fichier
+        PP = PortfolioPerformanceFile(filepath=file_path)
+        
+        # Actualiser les données affichées dans les onglets
+        # Extraction des données mises à jour
+        df_securities = PP.get_df_securities()
+        df_accounts = PP.get_df_accounts()
+        df_portfolios = PP.get_df_portfolios()
+        df_transactions = PP.get_transactions()
+        
+        # Afficher les données mises à jour
+        st.subheader("Securities DataFrame")
+        st.dataframe(df_securities)
 
+        st.subheader("Accounts DataFrame")
+        st.dataframe(df_accounts)
+
+        st.subheader("Portfolios DataFrame")
+        st.dataframe(df_portfolios)
+
+        st.subheader("Transactions DataFrame")
+        st.dataframe(df_transactions)
+
+    #############################################################
     # Configuration de l'application Streamlit
     st.title("Portfolio Performance Analysis")
 
